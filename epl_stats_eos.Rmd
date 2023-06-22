@@ -1,0 +1,289 @@
+---
+title: 'EPL 22/23 End of Year Table Challenge Round Up: With Graphs'
+author: "Zach Budesa"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+library(readxl)
+library(tidyverse)
+rankings_Teams <- read_excel("C:/Users/zrbxv2/OneDrive - University of Missouri/Desktop/Copy of EPL_Table_input_22-23_2022_08_05.xlsx",
+                   sheet = "Sheet2")
+rankings_competitors <- read_excel("C:/Users/zrbxv2/OneDrive - University of Missouri/Desktop/Copy of EPL_Table_input_22-23_2022_08_05.xlsx",
+                   sheet = "Sheet3")
+
+questions_answers <- read_excel("C:/Users/zrbxv2/OneDrive - University of Missouri/Desktop/Copy of EPL_Table_input_22-23_2022_08_05.xlsx",
+                   sheet = "Sheet4")
+questions <- read_excel("C:/Users/zrbxv2/OneDrive - University of Missouri/Desktop/Copy of EPL_Table_input_22-23_2022_08_05.xlsx",
+                   sheet = "Sheet1") %>% 
+  mutate(mean_right = rowMeans(.[-1]),
+         name = Question)
+```
+
+# What Actually Happened
+
+Ok, so now that we've all watched a petro-state beat a club backed by Chinese billionaires to win the treble, let's ease into the the offseason with a bit of recap:
+
+-   City won the league despite Arsenal looking like a good contender before they decided to pull a Spurs.
+
+-   They didn't win the league until May, but it began to feel inevitable as soon as Arsenal stumbled.
+
+-   Haaland won the Golden Boot, and scored fewer goals that it seemed like he would.
+
+-   De Gea managed the Golden Glove, but still isn't great with the ball at his feet.
+
+-   Lampard was a cunt for 2 (Two) Teams.
+
+-   Leicester, Leeds, and Southampton all were relegated (Dyche saved Everton, unfortunately), but several Teams flirted with the bottom 3 throughout the season.
+
+-   Newcastle spent a lot of money so that they can wear a Saudi kit in the Champions League next season.
+
+```{r}
+rankings_Teams %>% 
+  mutate(dif = `Bet 365` - Actual,
+         pos = ifelse(dif > 0, 1, 0),
+         neg = ifelse(dif < 0, 1, 0)) %>% 
+  ggplot(aes(x = fct_infreq(Teams, Actual))) +
+  geom_point(aes(y = Actual), color = "purple", size = 1) +
+  geom_point(aes(y = `Bet 365`), color = "blue", size = 1) +
+  geom_linerange(data = subset(rankings_Teams %>% 
+                            mutate(dif = `Bet 365` - Actual,
+                                   pos = ifelse(dif > 0, 1, 0)), pos == 1),
+                 aes(ymin = Actual, ymax = `Bet 365`),
+                 color = "green", linewidth = 1) +
+  geom_linerange(data = subset(rankings_Teams %>%
+                            mutate(dif = `Bet 365` - Actual,
+                                   neg = ifelse(dif < 0, 1, 0)), neg == 1),
+                 aes(ymin = Actual, ymax = `Bet 365`),
+                 color = "darkred", linewidth = 1) +
+  
+  geom_linerange(data = subset(rankings_Teams %>% 
+                            mutate(dif = `Bet 365` - Actual,
+                                   no = ifelse(dif == 0, 1, 0)), no == 1),
+            aes(ymin = Actual, ymax = `Bet 365`)) +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(dif = `Bet 365` - Actual,
+                                   pos = ifelse(dif > 0, 1, 0)), pos == 1),
+            aes(y = .5, label = dif), color = "green") +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(dif = `Bet 365` - Actual,
+                                   neg = ifelse(dif < 0, 1, 0)), neg == 1), 
+            aes(y = .5, label = dif), color = "darkred") +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(dif = `Bet 365` - Actual,
+                                   no = ifelse(dif == 0, 1, 0)), no == 1), 
+            aes(y = .5, label = dif), color = "white", size = 2) +
+  labs(title = "Final Table", x = "Teams", y = "Place",
+       subtitle = "Final table compared to BET 365's predictions.") +
+  coord_flip() +
+  theme_minimal()
+```
+
+BET365 Only managed to get City and Wolves final positions correctly.
+This also shows how overrated, the bottom 4 were, especially Leicester!
+Arsenal, Man U, Newcastle were a bit under rated, while Brentford, Fulham, and Bournemouth were completely slept on before the season started.
+
+## Our Predictions
+
+```{r fig.width=3,fig.height=3, fig.show="hold"}
+
+ppl <- names(rankings_Teams[-c(1:3)])
+
+myplot <- function(i){ 
+  i <- sym(i)
+  
+  rankings_Teams %>% 
+  mutate(dif = !!i - Actual,
+         pos = ifelse(dif > 0, 1, 0),
+         neg = ifelse(dif < 0, 1, 0)) %>% 
+  ggplot(aes(x = fct_infreq(Teams, Actual))) +
+  geom_point(aes(y = Actual), color = "purple", size = 1) +
+  geom_point(aes(y = !!i), color = "blue", size = 1) +
+  geom_linerange(data = subset(rankings_Teams %>% 
+                            mutate(dif = !!i - Actual,
+                                   pos = ifelse(dif > 0, 1, 0)), pos == 1),
+                 aes(ymin = Actual, ymax = !!i),
+                 color = "green", linewidth = 1) +
+  geom_linerange(data = subset(rankings_Teams %>%
+                            mutate(dif = !!i - Actual,
+                                   neg = ifelse(dif < 0, 1, 0)), neg == 1),
+                 aes(ymin = Actual, ymax = !!i),
+                 color = "darkred", linewidth = 1) +
+  
+  geom_linerange(data = subset(rankings_Teams %>% 
+                            mutate(dif = !!i - Actual,
+                                   no = ifelse(dif == 0, 1, 0)), no == 1),
+            aes(ymin = Actual, ymax = !!i)) +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(dif = !!i - Actual,
+                                   pos = ifelse(dif > 0, 1, 0)), pos == 1),
+            aes(y = .5, label = dif), color = "green") +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(dif = !!i - Actual,
+                                   neg = ifelse(dif < 0, 1, 0)), neg == 1), 
+            aes(y = .5, label = dif), color = "darkred") +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(dif = !!i - Actual,
+                                   no = ifelse(dif == 0, 1, 0)), no == 1), 
+            aes(y = .5, label = dif), color = "white", size = 2) +
+  labs(title = "", x = "", y = "",
+       subtitle = paste0(i, "'s final table")) +
+  coord_flip() +
+  theme_minimal()
+}
+
+
+
+for(i in ppl){
+  print(myplot(sym(i)))
+}
+
+```
+
+We were similarly all over the place with our guesses.
+Only Sam correctly predicted at least one of the bottom 3, but most everyone saw City as the probably winners.
+
+```{r}
+
+rankings_Teams %>% 
+  mutate(ave = rowMeans(
+    rankings_Teams[-c(1:3)])) %>% 
+  mutate(dif = ave - Actual,
+         pos = ifelse(dif > 0, 1, 0),
+         neg = ifelse(dif < 0, 1, 0)) %>% 
+  ggplot(aes(x = fct_infreq(Teams, Actual))) +
+  geom_point(aes(y = Actual), color = "purple", size = 1) +
+  geom_point(aes(y = ave), color = "blue", size = 1) +
+  geom_linerange(data = subset(rankings_Teams %>% 
+                                 mutate(ave = rowMeans(
+    rankings_Teams[-c(1:3)])) %>% 
+                            mutate(dif = ave - Actual,
+                                   pos = ifelse(dif > 0, 1, 0)), pos == 1),
+                 aes(ymin = ave, ymax = Actual),
+                 color = "green", linewidth = 1) +
+  geom_linerange(data = subset(rankings_Teams %>%
+                                 mutate(ave = rowMeans(
+    rankings_Teams[-c(1:3)])) %>% 
+                            mutate(dif = ave - Actual,
+                                   neg = ifelse(dif < 0, 1, 0)), neg == 1),
+                 aes(ymin = Actual, ymax = ave),
+                 color = "darkred", linewidth = 1) +
+  
+  geom_linerange(data = subset(rankings_Teams %>% 
+                                 mutate(ave = rowMeans(
+    rankings_Teams[-c(1:3)])) %>% 
+                            mutate(dif = ave - Actual,
+                                   no = ifelse(dif == 0, 1, 0)), no == 1),
+            aes(ymin = Actual, ymax = ave)) +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(ave = rowMeans(
+    rankings_Teams[-c(1:3)])) %>% 
+                            mutate(dif = ave - Actual,
+                                   pos = ifelse(dif > 0, 1, 0)), pos == 1),
+            aes(y = .5, label = dif), color = "green") +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(ave = rowMeans(
+    rankings_Teams[-c(1:3)])) %>% 
+                            mutate(dif = ave - Actual,
+                                   neg = ifelse(dif < 0, 1, 0)), neg == 1), 
+            aes(y = .5, label = dif), color = "darkred") +
+  geom_text(data = subset(rankings_Teams %>% 
+                            mutate(ave = rowMeans(
+    rankings_Teams[-c(1:3)])) %>% 
+                            mutate(dif = ave - Actual,
+                                   no = ifelse(dif == 0, 1, 0)), no == 1), 
+            aes(y = .5, label = dif), color = "white", size = 2) +
+  labs(title = "Final Table", x = "Teams", y = "Place",
+       subtitle = "Final table compared to our average predictions.") +
+  coord_flip() +
+  theme_minimal()
+```
+
+As a group, we seriously underrated Fulham and overrated Chelsea and Leicester.
+We were closest to predicting City, Crystal Palace, Wolves, and Nottingham Forest's Final places (all within a place on average).
+
+# Season Predictions
+
+So let's be real.
+Either everyone was drunk, didn't believe the hype, or completely forgot who had come to the league.
+Harry Kane was picked as the Golden Boot Winner, but we all forgot about the new kid.
+```{r}
+url <- "https://media.newyorker.com/photos/644ab20d87ae684cabca21f2/master/w_2560%2Cc_limit/knight-Erling-Haaland.jpg"
+```
+![](C:/Users/zrbxv2/OneDrive - University of Missouri/Desktop/image.png)
+Probably a One Season Wonder.
+
+But oh well.
+First, let's look at how everyone did.
+
+```{r}
+questions %>% 
+  arrange(desc(mean_right)) %>% 
+  ggplot(aes(x = fct_rev(fct_infreq(name, mean_right)), y = mean_right, fill = name)) +
+  geom_col() +
+  labs(x = "", y = "Percent Correct") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+Ok, let's be honest, we may be talking about the EPL, but this is more like baseball. If you can get a hit 3 in ten times here, you've got a good chance of winning. We're all doing the best we can here, but the Premier League is hard to predict. We managed as a group to miss 8 out of 19 of the questions that Mark came up with, meaning I think they were too hard. The team with the most draws, and the month with the first team relegated were the most difficult questions that anyone answered correctly, so congrats Phil and Steve! Everyone (well, almost everyone) knew that Lampard would be a cunt. But I suspect that's because we all know Mark well enough, at the very least.
+
+```{r}
+questions %>% 
+  mutate(across(!Question, as_factor)) %>% 
+  pivot_longer(!Question) %>% 
+  filter(name != "name", name != "mean_right") %>% 
+  group_by(name, value) %>% 
+  summarize(count = n()) %>% 
+  ggplot(aes(x = name, y = count, fill = value)) +
+  geom_bar(stat = "identity") +
+  labs(x = "", y = "Percent Correct") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+## Recaping our predictions: Were we right?
+Mostly no. 
+
+Kane and Ronaldo were tipped for the most expensive interleague transfer, and Kane still is with Spurs, while Ronaldo isn't in the league at all. Jesus was great at Arsenal when he wasn't injured, so I doubt he'll be agitating for a move.
+
+The 10% of us (just Phil) were correct about the first team being officially relegated in May, but most of us thought the title would go down to the wire.
+
+We were spot on with our guess that staying up would take between 32 and 37 points, with Leister going down with 34 in 18. 
+
+As I said in the recap of our answers:
+> No one sees United in the Top 3. Obviously.
+
+Oops. No one could have predicted that, apparently. 
+
+Our average top 4 was Man City, Liverpool, Tottenham, Arsenal. lol
+
+We had Leicester, Brighton, Villa, Palace, Wolves as our midtable finishers, but it seems like we were wildly off on most of these. Palace and Wolves are arguably midtable, but that's where the accuracy starts. 
+
+De Gea wasn't even chosen for Golden Glove. Just as good as our Golden Boot picks.
+
+# Miscellanea
+
+-   Mark (and Steve) was right about the first own goal for the season, but had to ask today about it.
+-   Leeds were bad, and we had such high hopes for them.
+-   We didn't know Bournemouth had it in them.
+-   CR7 is having a terrible time in Saudi Arabia and it makes me happy.
+-   I wonder if Steve ever paid up.
+
+
+
+
+
+
+
+
+
+
